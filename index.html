@@ -194,7 +194,7 @@ function calcAutoCoins() {
   const now = Date.now();
   const diffMs = now - lastMineTime;
   const diffHours = diffMs / (1000 * 60 * 60); // đổi ms -> giờ
-  const autoCoins = Math.floor(diffHours * level * 10); // mỗi giờ = level * 10 xu
+  const autoCoins = Math.floor(diffHours * level * 10); // mỗi giờ = level * 1000 xu
   return autoCoins;
 }
 
