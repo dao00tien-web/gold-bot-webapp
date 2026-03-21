@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Mining Bot</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #f6d365, #a8e063);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Header */
+    .header {
+      width: 100%;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      background: #e74c3c;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: bold;
+    }
+    .username { color: white; font-weight: bold; }
+    .stats { margin-left: auto; display: flex; gap: 12px; }
+    .stat { color: white; font-size: 14px; }
+
+    /* Main content */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #7b4f00;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .miner-img {
+      font-size: 100px;
+      margin: 20px 0;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .miner-img:active { transform: scale(0.9); }
+
+    /* Info card */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .card-label { color: #555; font-size: 14px; margin-bottom: 4px; }
+    .card-level { color: #e67e22; font-size: 32px; font-weight: bold; }
+    .card-divider { border: none; border-top: 1px solid #eee; margin: 12px 0; }
+    .card-upgrade-label { color: #555; font-size: 14px; }
+    .card-upgrade-cost { font-size: 28px; font-weight: bold; color: #333; }
+
+    .btn-upgrade {
+      margin-top: 12px;
+      background: #f39c12;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 32px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .btn-upgrade:active { opacity: 0.8; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      width: 100%;
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      border-top: 1px solid #eee;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      color: #888;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .nav-item.active { color: #e67e22; }
+    .nav-icon { font-size: 22px; }
+
+    /* Coin popup */
+    .coin-popup {
+      position: fixed;
+      font-size: 24px;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-80px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="avatar" id="avatar">S</div>
+    <span class="username" id="username">Sunshine👑</span>
+    <div class="stats">
+      <span class="stat">💎 <span id="diamond">1,000</span></span>
+      <span class="stat">🪙 <span id="coins">0</span></span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <h1>⛏️ Khai Thác Vàng</h1>
+
+    <div class="miner-img" id="miner" onclick="mine()">⛏️🧑</div>
+
+    <div class="card">
+      <div class="card-label">🧑‍🔧 Cấp độ thợ đào</div>
+      <div class="card-level" id="level-display">Lv. 1</div>
+
+      <hr class="card-divider">
+
+      <div class="card-upgrade-label">💰 Chi phí nâng cấp tiếp theo</div>
+      <div class="card-upgrade-cost"><span id="upgrade-cost">5000</span> 💎</div>
+
+      <button class="btn-upgrade" onclick="upgrade()">Nâng cấp ⬆️</button>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <span class="nav-icon">⛏️</span>
+      <span>Khai Thác</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">💱</span>
+      <span>Quy Đổi</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">🎁</span>
+      <span>Nhiệm Vụ</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">👥</span>
+      <span>Mời Bạn Bè</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">💳</span>
+      <span>Rút Tiền</span>
+    </div>
+  </div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+if (tg) tg.expand();
+
+// Lấy dữ liệu từ localStorage (lưu trong máy user)
+let coins = parseInt(localStorage.getItem('coins') || '0');
+let level = parseInt(localStorage.getItem('level') || '1');
+let lastMineTime = parseInt(localStorage.getItem('lastMineTime') || Date.now());
+let upgradeCost = level * 5000;
+
+// Hàm tính xu tự động tích lũy
+function calcAutoCoins() {
+  const now = Date.now();
+  const diffMs = now - lastMineTime;
+  const diffHours = diffMs / (1000 * 60 * 60); // đổi ms -> giờ
+  const autoCoins = Math.floor(diffHours * level * 10); // mỗi giờ = level * 10 xu
+  return autoCoins;
+}
+
+// Khi mở app, cộng xu tự động vào
+function applyAutoCoins() {
+  const auto = calcAutoCoins();
+  if (auto > 0) {
+    coins += auto;
+    lastMineTime = Date.now();
+    saveData();
+    alert(`⏰ Bạn vắng mặt và đã tự động đào được ${auto} xu! 🪙`);
+  }
+}
+
+// Lưu dữ liệu
+function saveData() {
+  localStorage.setItem('coins', coins);
+  localStorage.setItem('level', level);
+  localStorage.setItem('lastMineTime', lastMineTime);
+}
+
+// Cập nhật UI
+function updateUI() {
+  document.getElementById('coins').textContent = coins.toLocaleString();
+  document.getElementById('level-display').textContent = `Lv. ${level}`;
+  document.getElementById('upgrade-cost').textContent = upgradeCost.toLocaleString();
+}
+
+// Đào xu thủ công khi bấm
+function mine() {
+  const earned = level;
+  coins += earned;
+  lastMineTime = Date.now();
+  saveData();
+  updateUI();
+
+  // Hiệu ứng xu bay lên
+  const popup = document.createElement('div');
+  popup.className = 'coin-popup';
+  popup.textContent = `+${earned} 🪙`;
+  popup.style.left = (Math.random() * 60 + 20) + '%';
+  popup.style.top = '40%';
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 1000);
+}
+
+// Nâng cấp
+function upgrade() {
+  if (coins >= upgradeCost) {
+    coins -= upgradeCost;
+    level++;
+    upgradeCost = level * 5000;
+    saveData();
+    updateUI();
+    alert(`🎉 Nâng cấp thành công! Giờ bạn đào ${level} xu/click và ${level * 10} xu/giờ!`);
+  } else {
+    alert(`🪙 Cần ${upgradeCost.toLocaleString()} xu để nâng cấp!`);
+  }
+}
+
+// Lấy tên user từ Telegram
+if (tg?.initDataUnsafe?.user) {
+  const user = tg.initDataUnsafe.user;
+  document.getElementById('username').textContent = user.first_name + '👑';
+  document.getElementById('avatar').textContent = user.first_name[0];
+}
+
+// Khởi động
+applyAutoCoins();
+updateUI();
+
+// Tự động cập nhật xu mỗi phút (để thấy tăng dần)
+setInterval(() => {
+  const auto = calcAutoCoins();
+  if (auto > 0) {
+    coins += auto;
+    lastMineTime = Date.now();
+    saveData();
+    updateUI();
+  }
+}, 60000); // 60 giây check 1 lần    
+</script>
+
+</body>
+</html>
